@@ -1,0 +1,59 @@
+There are three main components to an ECG: the P wave, which represents depolarization of the atria; the QRS complex, which represents depolarization of the ventricles; and the T wave, which represents repolarization of the ventricles
+
+circuitry called the right leg driver can be used to reduce common-mode interference (typically the 50 or 60 Hz mains power)
+
+calculates features such as the PR interval, QT interval, corrected QT (QTc) interval, PR axis, QRS axis, rhythm and more
+
+Interpretation:
+
+Normal rhythm produces four entities – a P wave, a QRS complex, a T wave, and a U wave – that each have a fairly unique pattern.
+
+The P wave represents atrial depolarization.
+The QRS complex represents ventricular depolarization.
+The T wave represents ventricular repolarization.
+The U wave represents papillary muscle repolarization.
+
+In a normal heart, the heart rate is the rate at which the sinoatrial node depolarizes since it is the source of depolarization of the heart. 
+In normal resting hearts, the physiologic rhythm of the heart is normal sinus rhythm (NSR). Normal sinus rhythm produces the prototypical pattern of P wave, QRS complex, and T wave.
+Then, look at the heart rate.
+The heart has several axes, but the most common by far is the axis of the QRS complex.
+P wave - PR interval - QRS complex - J-joint - ST segment - T wave - Corrected QT interval (QTc) - U wave
+
+An ECG tracing is affected by patient motion. (= remove noise!)
+
+15 rules for interpretation:
+Rule 1: All waves in aVR are negative.
+Rule 2: The ST segment (J point) starts on the isoelectric line (except in V1 & V2 where it may be elevated by not greater than 1 mm).
+Rule 3: The PR interval should be 0.12–0.2 seconds long.
+Rule 4: The QRS complex should not exceed 0.11–0.12 seconds.
+Rule 5: The QRS and T waves tend to have the same general direction in the limb leads.
+Rule 6: The R wave in the precordial (chest) leads grows from V1 to at least V4 where it may or may not decline again.
+Rule 7: The QRS is mainly upright in I and II.
+Rule 8: The P wave is upright in I II and V2 to V6.
+Rule 9: There is no Q wave or only a small q (<0.04 seconds in width) in I, II and V2 to V6.
+Rule 10: The T wave is upright in I II and V2 to V6. The end of the T wave should not drop below the isoelectric baseline.
+Rule 11: Does the deepest S wave in V1 plus the tallest R wave in V5 or V6 equal >35 mm?
+Rule 12: Is there an Epsilon wave?
+Rule 13: Is there an J wave?
+Rule 14: Is there a Delta wave?
+Rule 15: Are there any patterns representing an occlusive myocardial infarction (OMI)?
+
+
+Noise:
+Sharma uses a dualband filter bank combined with a product filter and a lowpass filter to perform noise reduction on the ECG signal [11]. Peng Xiong uses a combination of wavelet scale adaptive threshold method and Denoising Automatic Encoder (DAE) to eliminate the influence of noise in the ECG signal, and cooperate with the Deep Neural Network (DNN) to extract features, the results show that the method shows a significant improvement in signal-to-noise ratio and root mean square error [12]. Alickovic E uses Multi-Scale Principal Component Analysis (MSPCA) to filter out the noise in ECG signals in data preprocessing, but MSPCA is not as common as other research fields in the field of ECG classification [13]. Phuong uses a combination of integrated empirical mode decomposition and genetic algorithm threshold technology to perform noise reduction on ECG signals. However, the genetic algorithm may obtain a local optimal solution during the optimization process [14].
+First of all, we filter the ECG signal by wavelet transform. Through the expansion and translation of the basis function, it can have good localization properties in the time and frequency domain at the same time, so as to filter out the interference waveform in the ECG data. The wavelet transform function, such as Formula (11). Where, we use the scale  to transform the wavelet function, and use the shift amount  to translate the wavelet function. The ECG signal is decomposed. In this study, the decomposition parameter is set to 9, and the original signal is decomposed into wavelet components to the selected layer. After noise filtering, the signal is reconstructed by wavelet to obtain ECG signals of different scales.
+In addition, we use median filtering to eliminate baseline drift noise. Median filtering is a non-linear digital filtering technique that has the characteristics of noise suppression and edge protection. To eliminate noise using median filtering, first remove the larger value in the ECG signal to obtain a trend term signal containing only the baseline, and then superimpose it with the original signal to eliminate the baseline drift interference in the original ECG signal. The neighborhood size is set to 9, that is, each point and four points on the left and right become a neighborhood. Select the median in the neighborhood of each position to replace the number in this position to eliminate the noise in the signal. Figure 3 is a comparison chart before and after filtering. The ECG signal after filtering is more stable.
+
+Features:
+The author first uses a set of features to represent each beat, such as frequency information, RR interval, QRS shape, and QRS detail coefficient. The second step uses Support Vector Machine (SVM) to classify feature vectors.
+13layer convolutional neural network (CNN) to extract ECG signal features, and use softmax classifier for classification.
+
+
+Extra:
+
+The common virtual electrode, known as Wilson's central terminal (VW), is produced by averaging the measurements from the electrodes RA, LA, and LL to give an average potential of the body:
+V_W = \frac{1}{3}(RA+LA+LL)
+
+RA	On the right arm, avoiding thick muscle.
+LA	In the same location where RA was placed, but on the left arm.
+LL	In the same location where RL was placed, but on the left leg.
