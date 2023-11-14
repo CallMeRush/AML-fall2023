@@ -6,20 +6,24 @@ waveletname = 'db4'
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from multiprocessing import Pool
+from sklearn.model_selection import train_test_split, GridSearchCV
 import scipy
 from collections import Counter
 import pywt
 from sklearn.ensemble import GradientBoostingClassifier
+from xgboost import XGBClassifier
 from sklearn.metrics import f1_score
 
 # Import data
-def import_data():
-    print("Importing data... ", end='')
+def import_data(verbose=False):
+    if verbose:
+        print("Importing data... ", end='')
     X_train_df = pd.read_csv(data_directory + 'X_train.csv', index_col='id')
     y_train_df = pd.read_csv(data_directory + 'y_train.csv', index_col='id')
     X_test_df = pd.read_csv(data_directory + 'X_test.csv', index_col='id')
-    print("data imported.")
+    if verbose:
+        print("data imported.")
 
     return X_train_df, y_train_df, X_test_df
 
@@ -27,12 +31,28 @@ def import_data():
 def drop_trailing_na(df: pd.DataFrame):
     return [df.loc[i].dropna().to_numpy() for i in range(df.shape[0])]
 
-def preprocess_data(X_train_df, y_train_df, X_test_df):
-    print("Preprocessing data... ", end='')
+def preprocess_data(X_train_df, y_train_df, X_test_df, verbose=False):
+    if verbose:
+        print("Preprocessing data... ", end='')
     X_train_full = drop_trailing_na(X_train_df)
     y_train_full = y_train_df['y'].to_numpy()
     X_test = drop_trailing_na(X_test_df)
-    print("data preprocessed.")
+    if verbose:
+        print("data preprocessed.")
+
+    return X_train_full, y_train_full, X_test
+
+# Parallel import and preprocess
+def parallel_import_preprocess_X(filename):
+    return drop_trailing_na(pd.read_csv(data_directory + filename, index_col='id'))
+
+def parallel_import_preprocess():
+    p = Pool(min(2, n_cores))
+    X_train_full, X_test = p.map(parallel_import_preprocess_X, ['X_train.csv', 'X_test.csv'])
+    p.close()
+    p.join()
+
+    y_train_full = pd.read_csv(data_directory + 'y_train.csv', index_col='id')['y'].to_numpy()
 
     return X_train_full, y_train_full, X_test
 
@@ -76,14 +96,14 @@ def get_features(list_values):
     return [entropy] + crossings + statistics
 
 # Noise handling
-def wavelet_transform(signal):
+def wavelet_transform(signal, waveletname=waveletname):
     return pywt.wavedec(signal, waveletname, level=7)
 
 # Feature extraction
-def get_dataset_features(data):
+def get_dataset_features(data, waveletname=waveletname):
     list_features = []
     for signal in data:
-        list_coeff = wavelet_transform(signal)
+        list_coeff = wavelet_transform(signal, waveletname=waveletname)
         features = []
         for coeff in list_coeff:
             features += get_features(coeff)
@@ -94,7 +114,14 @@ def get_dataset_features(data):
 # Classifier definition
 def get_classifier():
     cls = GradientBoostingClassifier(n_estimators=100, verbose=1, random_state=random_state)
+    cls = XGBClassifier(seed=random_state)
     return cls
+
+def find_best_classifier(model, params, X_train, y_train):
+    classifier = GridSearchCV(model, params, scoring='f1_micro', cv=5, n_jobs=n_cores, verbose=3)
+    classifier.fit(X_train, y_train.T.ravel())
+    print(classifier.best_params_)
+    return classifier.best_estimator_
 
 
 # Training with validation
@@ -102,6 +129,7 @@ def print_f1_score(y_train, y_train_pred, y_val, y_val_pred):
     train_score = f1_score(y_train, y_train_pred, average='micro')
     val_score = f1_score(y_val, y_val_pred, average='micro')
     print("F1 score: ", train_score, val_score)
+    return val_score
 
 def train_with_val(cls, X_train_extracted, y_train, X_val_extracted, y_val):
     cls.fit(X_train_extracted, y_train.T.ravel())
@@ -109,7 +137,8 @@ def train_with_val(cls, X_train_extracted, y_train, X_val_extracted, y_val):
     y_train_pred = cls.predict(X_train_extracted)
     y_val_pred = cls.predict(X_val_extracted)
 
-    print_f1_score(y_train, y_train_pred, y_val, y_val_pred)
+    val_score = print_f1_score(y_train, y_train_pred, y_val, y_val_pred)
+    return val_score
 
 
 # Final training
